@@ -1,7 +1,5 @@
-streamlit==1.38.0
-streamlit-lightweight-charts==1.2.5
-yfinance==0.2.40
-pandas==2.2.2
-pandas_ta==0.3.14b
-requests==2.32.3
-numpy==1.26.4
+streamlit
+yfinance
+pandas
+numpy
+requests
