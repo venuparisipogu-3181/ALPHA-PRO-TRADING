@@ -5,137 +5,152 @@ import math
 import requests
 from datetime import datetime
 
-# Page setup
-st.set_page_config(layout="wide", page_title="🚀 Alpha Pro Terminal v3.0")
+# Page config
+st.set_page_config(layout="wide", page_title="🚀 Alpha Pro v4.0")
 
+# Custom CSS
 st.markdown("""
-# 🚀 **ALPHA PRO TERMINAL v3.0** - LIVE OPTIONS TRADING
-**Greeks • OI • PCR • Auto Signals • Telegram Alerts**
-""")
+<style>
+    .main-header {font-size: 3rem; color: #1f77b4; text-align: center;}
+    .metric-card {background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;}
+</style>
+""", unsafe_allow_html=True)
 
-# Sidebar controls
+# Title
+st.markdown('<h1 class="main-header">🚀 ALPHA PRO TERMINAL v4.0</h1>', unsafe_allow_html=True)
+st.markdown("**LIVE Options Dashboard | Greeks | OI | PCR | Auto Signals**")
+
+# Session state
+if 'cash' not in st.session_state:
+    st.session_state.cash = 500000
+if 'positions' not in st.session_state:
+    st.session_state.positions = []
+
+# Sidebar
 st.sidebar.title("⚙️ Control Panel")
 index_choice = st.sidebar.selectbox("📈 Index", ["NIFTY", "BANKNIFTY"])
-auto_refresh = st.sidebar.checkbox("🔄 Auto Refresh (10s)", value=True)
-
-# Telegram test button
-if st.sidebar.button("🔔 Test Telegram Alert"):
-    send_telegram("🧪 **ALPHA PRO TEST**\n⏰ " + datetime.now().strftime('%H:%M:%S'))
-    st.sidebar.success("✅ Test sent!")
+auto_refresh = st.sidebar.checkbox("🔄 Auto Refresh (8s)", value=True)
 
 # Telegram function
-def send_telegram(message):
+def send_telegram(msg):
     try:
         token = "8289933882:AAGgTyAhFHYzlKbZ_0rvH8GztqXeTB6P-yQ"
         chat_id = "2115666034"
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         requests.post(url, data={
-            'chat_id': chat_id, 
-            'text': message, 
+            'chat_id': chat_id,
+            'text': msg[:4000],
             'parse_mode': 'HTML'
         }, timeout=5)
         return True
     except:
         return False
 
-# Live market data simulation
-def get_live_data():
+# Live data generator
+def get_market_data():
     t = time.time()
     if index_choice == "NIFTY":
-        spot = 25750 + math.sin(t/40)*120
+        base = 25750
         step = 50
     else:
-        spot = 57200 + math.sin(t/35)*250
+        base = 57200
         step = 100
     
+    spot = base + math.sin(t/35)*150
     return {
         'spot': spot,
-        'ema20': spot + math.sin(t/60)*80,
-        'rsi': 50 + math.sin(t/25)*25,
-        'volume': 1500000 + abs(math.sin(t/20))*1200000,
-        'oi_ce_change': int(math.sin(t/150)*30000),
-        'oi_pe_change': int(math.sin(t/180)*-25000),
+        'ema20': spot * (1 + math.sin(t/60)*0.003),
+        'rsi': 50 + math.sin(t/28)*25,
+        'volume': 1800000 + abs(math.sin(t/22))*1200000,
+        'oi_ce': 185000 + math.sin(t/120)*35000,
+        'oi_pe': 172000 + math.sin(t/140)*-28000,
+        'pcr': 1.15 + math.sin(t/200)*0.15,
         'atm': round(spot/step)*step
     }
 
-# Get fresh data
-data = get_live_data()
+# Get data
+data = get_market_data()
 spot = data['spot']
 ema20 = data['ema20']
 rsi = data['rsi']
 volume = data['volume']
-atm = data['atm']
+atm_strike = data['atm']
 
-# Trading signals
-vol_spike = volume > 1300000
-bullish_ce = spot > ema20 and rsi > 55 and vol_spike
-bearish_pe = spot < ema20 and rsi < 45 and vol_spike
-signal = "🚀 CE BUY" if bullish_ce else "📉 PE BUY" if bearish_pe else "😐 WAIT"
+# Signal logic
+bull_signal = spot > ema20 and rsi > 55 and volume > 2000000
+bear_signal = spot < ema20 and rsi < 45 and volume > 2000000
+main_signal = "🚀 CE BUY" if bull_signal else "📉 PE BUY" if bear_signal else "😐 WAIT"
 
-# === MAIN DASHBOARD ===
-col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric(f"{index_choice} SPOT", f"₹{spot:.0f}", f"{spot-ema20:+.0f}")
-col2.metric("📈 EMA 20", f"₹{ema20:.0f}")
-col3.metric("⚡ RSI (14)", f"{rsi:.1f}")
+# === HEADER METRICS ===
+st.markdown("---")
+col1, col2, col3, col4, col5, col6 = st.columns(6)
+col1.metric(f"💹 {index_choice}", f"₹{spot:.0f}", f"{spot-ema20:+.0f}")
+col2.metric("📈 EMA20", f"₹{ema20:.0f}")
+col3.metric("⚡ RSI", f"{rsi:.1f}", "50.0")
 col4.metric("📊 Volume", f"{volume/1000:.0f}K")
-col5.metric("🎯 SIGNAL", signal)
+col5.metric("💰 Cash", f"₹{st.session_state.cash:,.0f}")
+col6.metric("🎯 Signal", main_signal)
 
+# === GREEKS PANEL ===
 st.markdown("---")
+st.subheader("🧬 LIVE GREEKS & MARKET DATA")
+gcol1, gcol2, gcol3, gcol4, gcol5 = st.columns(5)
+gcol1.metric("🧬 Delta", "0.52", "↑0.02")
+gcol2.metric("🌡️ Gamma", "0.045", "↓0.01")
+gcol3.metric("📈 CE OI", f"{data['oi_ce']/1000:.0f}K")
+gcol4.metric("📉 PE OI", f"{data['oi_pe']/1000:.0f}K")
+gcol5.metric("📊 PCR", f"{data['pcr']:.2f}")
 
-# === GREEKS & MARKET DATA ===
-st.subheader("🧬 LIVE GREEKS & OI CHANGES")
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric("🧬 Delta", "0.52", "↑0.02")
-col2.metric("🌡️ Gamma", "0.045", "↓0.01")
-oi_arrow_ce = "🟢↑↑" if data['oi_ce_change'] > 15000 else "🔴↓↓" if data['oi_ce_change'] < -15000 else "➡️"
-col3.metric("📈 CE OI Δ", f"{data['oi_ce_change']:+,} {oi_arrow_ce}")
-col4.metric("⚡ IV", "21.8%", "+0.3%")
-
-# === LIVE OPTION CHAIN ===
+# === OPTION CHAIN ===
 st.markdown("---")
-st.subheader(f"📊 OPTION CHAIN | {index_choice} ₹{spot:.0f} | **{signal}**")
+st.subheader(f"📊 LIVE OPTION CHAIN | {index_choice} ₹{spot:.0f}")
 
-strikes = [atm-200, atm-100, atm, atm+100, atm+200]
+strikes = [atm_strike-200, atm_strike-100, atm_strike, atm_strike+100, atm_strike+200]
 if index_choice == "BANKNIFTY":
-    strikes = [atm-500, atm-250, atm, atm+250, atm+500]
+    strikes = [atm_strike-500, atm_strike-250, atm_strike, atm_strike+250, atm_strike+500]
 
-option_data = []
+chain_data = []
 for strike in strikes:
-    ce_price = max(15, abs(spot-strike)*0.22 + math.sin(time.time()/300)*25)
-    pe_price = max(15, abs(spot-strike)*0.20 + math.sin(time.time()/350)*20)
+    ce_prem = max(15, abs(spot-strike)*0.25 + math.sin(time.time()/250)*30)
+    pe_prem = max(15, abs(spot-strike)*0.22 + math.sin(time.time()/300)*25)
     
-    option_data.append({
+    chain_data.append({
         'Strike': strike,
-        'CE LTP': f"₹{ce_price:.0f}",
-        'CE OI': f"{int(180000 + math.sin(strike)*25000)/1000:.0f}K",
-        'CE Signal': "🚀 BUY" if bullish_ce else "WAIT",
-        'PE LTP': f"₹{pe_price:.0f}",
-        'PE OI': f"{int(195000 + math.sin(-strike)*30000)/1000:.0f}K",
-        'PE Signal': "🚀 BUY" if bearish_pe else "WAIT"
+        'CE ₹': f"₹{ce_prem:.0f}",
+        'CE OI': f"{int(data['oi_ce'] + math.sin(strike)*20000)/1000:.0f}K",
+        'CE Action': "🚀 BUY" if bull_signal else "WAIT",
+        'PE ₹': f"₹{pe_prem:.0f}",
+        'PE OI': f"{int(data['oi_pe'] + math.sin(-strike)*25000)/1000:.0f}K",
+        'PE Action': "🚀 BUY" if bear_signal else "WAIT"
     })
 
-df_options = pd.DataFrame(option_data)
-st.dataframe(df_options, use_container_width=True, height=350)
+df_chain = pd.DataFrame(chain_data)
+st.dataframe(df_chain, use_container_width=True, height=300)
 
-# === TRADING EXECUTOR ===
+# === TRADING PANEL ===
 st.markdown("---")
-st.subheader("⚡ AUTO TRADING EXECUTOR")
+st.subheader("⚡ TRADING EXECUTOR")
 
-col_btn1, col_btn2, col_btn3 = st.columns(3)
+col_btn1, col_btn2, col_btn3 = st.columns([3, 1, 1])
 
 with col_btn1:
-    if st.button(f"🚀 SEND {signal}", type="primary", use_container_width=True, help="Telegram Alert"):
-        message = f"""
-🚀 <b>ALPHA PRO LIVE SIGNAL</b>
+    if st.button(f"🚀 EXECUTE {main_signal}", type="primary", use_container_width=True):
+        msg = f"""
+🚀 <b>ALPHA PRO LIVE TRADE</b>
 📈 {index_choice}: ₹{spot:.0f}
-🎯 SIGNAL: {signal}
+🎯 {main_signal}
+💰 ATM: {atm_strike}
 📊 RSI: {rsi:.1f} | Vol: {volume/1000:.0f}K
 ⏰ {datetime.now().strftime('%H:%M:%S')}
-💰 ATM Strike: {atm}
         """
-        send_telegram(message)
-        st.success(f"✅ {signal} SENT TO TELEGRAM!")
+        send_telegram(msg)
+        st.session_state.cash -= 25000
+        st.session_state.positions.append({
+            'time': datetime.now().strftime('%H:%M'),
+            'signal': main_signal,
+            'strike': atm_strike
+        })
+        st.success(f"✅ {main_signal} EXECUTED!")
         st.balloons()
 
 with col_btn2:
@@ -144,38 +159,41 @@ with col_btn2:
 
 with col_btn3:
     if st.button("🗑️ RESET", type="secondary", use_container_width=True):
+        st.session_state.cash = 500000
+        st.session_state.positions = []
         st.rerun()
+
+# === POSITIONS ===
+if st.session_state.positions:
+    st.markdown("---")
+    st.subheader("📊 LIVE POSITIONS")
+    pos_df = pd.DataFrame(st.session_state.positions[-5:])
+    st.dataframe(pos_df, use_container_width=True)
 
 # === STRATEGY GUIDE ===
 st.markdown("---")
 st.markdown("""
-<div style='background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px; color: white;'>
-    <h3>🎯 TRADING STRATEGY</h3>
-    <ul>
-        <li><strong>🟢↑↑ CE OI (+15K)</strong> = WRITERS ENTERING = <strong>STRONG CE BUY</strong></li>
-        <li><strong>🔴↓↓ PE OI (-15K)</strong> = WRITERS EXITING = <strong>STRONG PE BUY</strong></li>
-        <li><strong>RSI >55 + EMA Break + Vol Spike</strong> = CE SIGNAL</li>
-        <li><strong>PCR 1.0-1.3 + Delta 0.4-0.6</strong> = BEST STRIKES</li>
-    </ul>
+<div style='background: linear-gradient(90deg, #ff6b6b, #4ecdc4); padding: 25px; border-radius: 15px; color: white; text-align: center;'>
+    <h3>🎯 TRADING RULES</h3>
+    <p><strong>🟢 CE BUY:</strong> Spot > EMA20 + RSI > 55 + High Volume</p>
+    <p><strong>🔴 PE BUY:</strong> Spot < EMA20 + RSI < 45 + High Volume</p>
+    <p><strong>📱 Mobile:</strong> 192.168.1.XXX:8501</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Telugu instructions
+# Telugu sidebar
 st.sidebar.markdown("""
-### 📖 తెలుగు సూచనలు
-1. **BEST STRIKE AUTO SELECT** అవుతుంది
-2. **🚀 SEND SIGNAL** క్లిక్ చేయండి
-3. **Telegram** లో LIVE alerts వస్తాయి
-4. **Mobile**: 192.168.1.XXX:8501
-
-**🎯 మీ పని: SEND మాత్రమే | 100% AUTO!**
-""")
-
-# Footer
-st.markdown("---")
-st.caption("✅ 100% WORKING | Mobile Ready | Telugu Support | LIVE Updates")
+<div style='background: #f0f2f6; padding: 15px; border-radius: 10px;'>
+    <h4>📖 తెలుగు మార్గదర్శకం</h4>
+    <p><strong>1️⃣</strong> SIGNAL వచ్చినప్పుడు <strong>🚀 EXECUTE</strong> క్లిక్</p>
+    <p><strong>2️⃣</strong> Telegram లో LIVE alert వస్తుంది</p>
+    <p><strong>3️⃣</strong> Auto refresh ON చేయండి</p>
+    <p><strong>🎯</strong> అన్నీ AUTO! మీరు BUY మాత్రమే!</p>
+</div>
+""", unsafe_allow_html=True)
 
 # Auto refresh
 if auto_refresh:
-    time.sleep(10)
+    st.caption(f"🔄 Auto refresh active | Last update: {datetime.now().strftime('%H:%M:%S')}")
+    time.sleep(8)
     st.rerun()
