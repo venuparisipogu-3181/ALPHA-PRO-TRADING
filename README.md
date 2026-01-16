@@ -1,12 +1,24 @@
-# 🚀 Alpha Pro Terminal v10.0
+# 🚀 Alpha Pro Trading Terminal
 
-An advanced Option Trading Screener for **NIFTY** & **BANKNIFTY** built with Streamlit.
+**LIVE NIFTY/BankNifty Dashboard** | **Candlestick Charts** | **Option Chain** | **Telegram Alerts**
 
-### ✨ Key Features:
-- **Live Greeks Streaming:** Real-time Delta, IV, and PCR.
-- **Dual Index View:** Monitor Nifty and BankNifty side-by-side.
-- **Smart Exit Logic:** Auto-alerts based on RSI extremes and OI unwinding.
-- **Telegram Integration:** Perfect Entry alerts with Target, SL, and Trailing info.
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/)
 
-### 🛠️ Tech Stack:
-- Python, Streamlit, Plotly, Telegram API.
+## 🎯 Features
+- ✅ **Live Candlestick Charts** (1m/5m/15m)
+- ✅ **Real-time Option Chain** (ITM/ATM/OTM)
+- ✅ **Auto CE/PE Signals** (EMA + RSI)
+- ✅ **Telegram Alerts** (Perfect format)
+- ✅ **Mobile Responsive** (`192.168.1.XXX:8501`)
+- ✅ **Production Ready** (No errors)
+
+## 🚀 Quick Start (Local)
+
+```bash
+# Clone & Install
+git clone https://github.com/YOUR_USERNAME/AlphaPro-Trading-Terminal.git
+cd AlphaPro-Trading-Terminal
+pip install -r requirements.txt
+
+# RUN
+streamlit run main_pro_terminal.py
